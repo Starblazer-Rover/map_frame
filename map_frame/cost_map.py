@@ -9,11 +9,12 @@ import pcl
 from octomap_msgs.msg import Octomap
 
 class CostMap(Node):
+class CostMap(Node):
     def __init__(self):
         super().__init__('cost_map')
-        self.subscription = self.create_subscription(PointCloud2, '/depth/PointCloud2', self.timer_callback, 10)
+        self.subscription = self.create_subscription(PointCloud2, '/depth/PointCloud2_raw', self.timer_callback, 10)
 
-        self.publisher = self.create_publisher(OccupancyGrid, '/map/grid', 10)
+        self.publisher = self.create_publisher(OccupancyGrid, '/map/grid_raw', 1)
 
     def create_info(self):
         map = MapMetaData()
@@ -111,19 +112,72 @@ class CostMap(Node):
         self.publisher.publish(grid)
         
 
+        data = self.read_points(msg)
+
+        grid = OccupancyGrid()
+        grid.header = msg.header
+        grid.header.frame_id = 'chassis'
+        grid.info = self.create_info()
+
+        grid.data = [-1]*(grid.info.height * grid.info.width)
+
+        for i in range(grid.info.height * grid.info.width):
+            column = i // grid.info.height
+            row = i % grid.info.height
+
+            x_offset, y_offset = self.find_points(column, row)
+
+            indices = np.where((data[:,:,1]>=x_offset[0]) & (data[:,:,1]<=x_offset[1]) & (data[:,:,0]>=y_offset[0]) & (data[:,:,0]<=y_offset[1]))
+
+            if len(indices[0]) != 0:
+                deviation = np.std(data[indices[0],indices[1],2])
+
+                if deviation < 4:
+                    grid.data[i] = 0
+                else:
+                    grid.data[i] = min(int(deviation*5), 100)
+
+        """
+        grid.data[91] = 100
+        grid.data[92] = 100
+        grid.data[93] = 100
+        grid.data[94] = 100
+
+        grid.data[106] = 100
+        grid.data[107] = 100
+        grid.data[108] = 100
+        grid.data[109] = 100
+
+        grid.data[121] = 100
+        grid.data[122] = 100
+        grid.data[123] = 100
+        grid.data[124] = 100
+        """
+
+        print('working')
+
+        self.publisher.publish(grid)
+        
+
 def main(args=None):
     rclpy.init(args=args)
 
     cost_map = CostMap()
 
+    cost_map = CostMap()
+
     try:
+        rclpy.spin(cost_map)
         rclpy.spin(cost_map)
     except KeyboardInterrupt:
         pass
     finally:
         cost_map.destroy_node()
+        cost_map.destroy_node()
 
 
 if __name__ == '__main__':
     main()
+
+
 
