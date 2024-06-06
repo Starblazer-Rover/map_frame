@@ -9,7 +9,6 @@ import pcl
 from octomap_msgs.msg import Octomap
 
 class CostMap(Node):
-class CostMap(Node):
     def __init__(self):
         super().__init__('cost_map')
         self.subscription = self.create_subscription(PointCloud2, '/depth/PointCloud2_raw', self.timer_callback, 10)
