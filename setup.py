@@ -21,6 +21,8 @@ setup(
     license='Apache License 2.0',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [],
+        'console_scripts': [
+            'map = map_frame.cost_map:main'
+        ],
     },
 )
